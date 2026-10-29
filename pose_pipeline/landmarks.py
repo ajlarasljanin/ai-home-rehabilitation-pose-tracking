@@ -86,6 +86,45 @@ def joint_angle(a: Landmark, vertex: Landmark, b: Landmark) -> float:
     return float(np.degrees(np.arccos(cos_theta)))
 
 
+def to_isotropic(landmarks: dict[int, Landmark], aspect_hw: float | None) -> dict[int, Landmark]:
+    """
+    MediaPipe normalizes x by image width and y by image height. For a non-square
+    frame the axes have different units, which distorts angles (a true 45 deg knee
+    angle on a 9:16 portrait frame is measured as ~61 deg). Rescaling y by
+    (height / width) gives isotropic coordinates in width units; z already uses
+    roughly the same scale as x.
+    """
+    if not aspect_hw or aspect_hw == 1.0:
+        return landmarks
+    return {
+        i: Landmark(x=lm.x, y=lm.y * aspect_hw, z=lm.z, visibility=lm.visibility)
+        for i, lm in landmarks.items()
+    }
+
+
+def knee_valgus_deg(hip: Landmark, knee: Landmark, ankle: Landmark, midline_x: float) -> float:
+    """
+    Medial knee deviation (valgus) in the frontal plane, in degrees.
+
+    Only deviation of the knee from the hip-ankle line *towards* the body midline
+    counts; a knee that bends forward or tracks outward returns 0. Valid only for a
+    front-facing camera view.
+    """
+    dy = ankle.y - hip.y
+    if abs(dy) < 1e-9:
+        return 0.0
+    t = (knee.y - hip.y) / dy
+    line_x = hip.x + t * (ankle.x - hip.x)
+    toward_midline = np.sign(midline_x - hip.x) or 1.0
+    offset = (knee.x - line_x) * toward_midline
+    if offset <= 0:
+        return 0.0
+    thigh = float(np.hypot(knee.x - hip.x, knee.y - hip.y))
+    if thigh < 1e-9:
+        return 0.0
+    return float(np.degrees(np.arctan2(offset, thigh)))
+
+
 def knee_angle(landmarks: dict[int, Landmark], side: str = "left") -> float:
     """Ugao u kolenu: L23-L25-L27 (levo) ili L24-L26-L28 (desno)."""
     if side == "left":

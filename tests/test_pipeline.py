@@ -367,3 +367,55 @@ def test_majority_vote_requires_four_of_five_frames():
     for i in range(4):
         fsm.step(50.0, timestamp=(i + 2) * dt, g_valid=True, frame_index=i + 2)
     assert fsm.state == SquatState.DOWN
+
+
+# --- Aspect-ratio correction and medial-only valgus -------------------------
+
+def test_isotropic_coordinates_recover_true_angle_on_portrait_frame():
+    from pose_pipeline.landmarks import to_isotropic
+
+    w, h = 1080, 1920
+
+    def norm(px, py):
+        return Landmark(px / w, py / h, 0.0, 1.0)
+
+    # True 45 deg angle at the knee, measured in pixels.
+    lms = {23: norm(500, 800), 25: norm(500, 1100), 27: norm(800, 800)}
+    distorted = joint_angle(lms[23], lms[25], lms[27])
+    iso = to_isotropic(lms, h / w)
+    fixed = joint_angle(iso[23], iso[25], iso[27])
+    assert abs(distorted - 45.0) > 10.0
+    assert fixed == pytest.approx(45.0, abs=1e-6)
+
+
+def test_isotropic_is_identity_for_square_frame():
+    from pose_pipeline.landmarks import to_isotropic
+
+    lms = {0: Landmark(0.3, 0.4, 0.0, 1.0)}
+    assert to_isotropic(lms, 1.0) is lms
+    assert to_isotropic(lms, None) is lms
+
+
+def test_knee_valgus_counts_only_medial_deviation():
+    from pose_pipeline.landmarks import knee_valgus_deg
+
+    hip = Landmark(0.42, 0.5, 0.0, 1.0)
+    ankle = Landmark(0.42, 0.9, 0.0, 1.0)
+    midline = 0.5  # body centre is to the right of this (left) leg
+    medial = knee_valgus_deg(hip, Landmark(0.46, 0.7, 0.0, 1.0), ankle, midline)
+    lateral = knee_valgus_deg(hip, Landmark(0.38, 0.7, 0.0, 1.0), ankle, midline)
+    straight = knee_valgus_deg(hip, Landmark(0.42, 0.7, 0.0, 1.0), ankle, midline)
+    assert medial > 8.0
+    assert lateral == 0.0
+    assert straight == 0.0
+
+
+def test_knee_valgus_is_mirror_symmetric():
+    from pose_pipeline.landmarks import knee_valgus_deg
+
+    # Right leg on the right side of the image: medial means moving left.
+    hip = Landmark(0.58, 0.5, 0.0, 1.0)
+    ankle = Landmark(0.58, 0.9, 0.0, 1.0)
+    left_leg = knee_valgus_deg(Landmark(0.42, 0.5, 0, 1), Landmark(0.46, 0.7, 0, 1), Landmark(0.42, 0.9, 0, 1), 0.5)
+    right_leg = knee_valgus_deg(hip, Landmark(0.54, 0.7, 0.0, 1.0), ankle, 0.5)
+    assert right_leg == pytest.approx(left_leg)

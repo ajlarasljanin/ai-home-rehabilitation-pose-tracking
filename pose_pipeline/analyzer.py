@@ -22,6 +22,7 @@ from .landmarks import (
     knee_angle,
     normalize_skeleton,
     shoulder_angle,
+    to_isotropic,
     visibility_gate,
 )
 from .segmentation import CycleSegment, detect_body_momentum
@@ -134,7 +135,11 @@ class MotionAnalyzer:
                 raise ImportError("MediaPipe nije dostupan; predajte landmarks preko process_frame().")
             self.estimator = PoseEstimator()
         landmarks = self.estimator.process(frame_bgr)
-        result = self.process_frame(landmarks, timestamp, frame_index, pose_detected=landmarks is not None)
+        h, w = frame_bgr.shape[:2]
+        result = self.process_frame(
+            landmarks, timestamp, frame_index,
+            pose_detected=landmarks is not None, image_aspect=h / w,
+        )
         overlay = draw_overlay(
             frame_bgr,
             landmarks,
@@ -153,7 +158,11 @@ class MotionAnalyzer:
         timestamp: float,
         frame_index: int,
         pose_detected: bool | None = None,
+        image_aspect: float | None = None,
     ) -> FrameResult:
+        """image_aspect = frame height / width; angles are computed in isotropic coordinates."""
+        if landmarks is not None:
+            landmarks = to_isotropic(landmarks, image_aspect)
         if self.latency is not None:
             with self.latency.measure("frame_total"):
                 result = self._process_frame_impl(landmarks, timestamp, frame_index, pose_detected)

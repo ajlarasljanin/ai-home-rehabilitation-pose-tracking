@@ -1,4 +1,4 @@
-const CACHE = "rehabpose-v2";
+const CACHE = "rehabpose-v3";
 const APP_SHELL = [
   "./",
   "./index.html",

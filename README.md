@@ -6,7 +6,7 @@ The system estimates body pose, computes joint angles, filters the signal, count
 Seminar project · Master studies in Artificial Intelligence · Course: AI in Medicine
 Author: Ajla Rašljanin
 
-> 📄 The accompanying seminar paper, *Primena veštačke inteligencije u rehabilitaciji u kućnim uslovima* (Application of AI in home-based rehabilitation), is written in **Serbian** and is not included in this repository. Code comments and the mobile app UI are in Serbian.
+> 📄 The accompanying seminar paper, *Primena veštačke inteligencije u rehabilitaciji u kućnim uslovima* (Application of AI in home-based rehabilitation), is written in **Serbian** and is not included in this repository. Code comments are in Serbian; the mobile app UI is in English.
 
 ![FSM phase segmentation with repetition markers](docs/figures/fsm_phase_segmentation.png)
 
@@ -59,7 +59,7 @@ Camera ─► MediaPipe Pose ─► joint angles ─► Butterworth filter ─�
 | `pose_pipeline/analyzer.py` | End-to-end processing (`MotionAnalyzer`) |
 | `pose_pipeline/visualization.py` | Overlay and plots |
 | `pose_pipeline/evaluation.py` | Accuracy and latency evaluation |
-| `tests/test_pipeline.py` | Unit tests (22 tests) |
+| `tests/test_pipeline.py` | Unit tests (26 tests) |
 | `demo.py` | End-to-end demo on a synthetic squat signal (no camera needed) |
 | `live.py` | Real-time demo with a webcam (OpenCV window) |
 | `mobile/` | Mobile web app (PWA) |

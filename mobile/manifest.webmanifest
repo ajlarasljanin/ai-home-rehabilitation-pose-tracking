@@ -2,7 +2,7 @@
   "id": "/",
   "name": "RehabPose",
   "short_name": "RehabPose",
-  "description": "Demo kućne rehabilitacije: MediaPipe pose, FSM brojanje, semaforski feedback.",
+  "description": "Home rehabilitation demo: MediaPipe pose, FSM rep counting, traffic-light feedback.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

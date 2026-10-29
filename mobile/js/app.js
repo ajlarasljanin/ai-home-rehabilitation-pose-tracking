@@ -9,10 +9,10 @@ import { createPoseLandmarker, startCamera, stopCamera, drawPose } from "./pose.
 
 const STATE_LABELS = {
   START: "START",
-  DOWN: "SPUŠTANJE",
+  DOWN: "LOWERING",
   HOLD: "HOLD",
-  UP: "PODIZANJE",
-  COMPLETE: "CIKLUS",
+  UP: "RISING",
+  COMPLETE: "CYCLE",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -45,7 +45,7 @@ function speak(text) {
   lastCue = text;
   lastCueAt = now;
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = "sr-RS";
+  u.lang = "en-US";
   u.rate = 1;
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
@@ -79,14 +79,14 @@ async function startSession() {
 
   try {
     if (!landmarker) {
-      $("feedback").textContent = "Učitavanje MediaPipe modela…";
+      $("feedback").textContent = "Loading MediaPipe model…";
       landmarker = await createPoseLandmarker();
     }
     $("video").classList.toggle("mirror", facingMode === "user");
     stream = await startCamera($("video"), facingMode);
   } catch (err) {
     $("session-error").textContent =
-      "Kamera nije dostupna. Dozvolite pristup kameri u Chrome-u, pa pokušajte ponovo. " +
+      "Camera not available. Allow camera access in Chrome and try again. " +
       (err?.message || "");
     $("session-error").classList.remove("hidden");
     return;
@@ -117,10 +117,11 @@ function loop() {
     const result = landmarker.detectForVideo(video, now);
     poseLandmarks = result.landmarks?.[0] || null;
   } catch (e) {
-    $("feedback").textContent = "Detekcija nije uspela na ovom frejmu.";
+    $("feedback").textContent = "Detection failed on this frame.";
   }
 
   const landmarks = landmarksFromMediaPipe(poseLandmarks);
+  if (video.videoWidth && video.videoHeight) pipeline.aspect = video.videoHeight / video.videoWidth;
   const timestamp = (now - sessionStartedAt) / 1000;
   const evt = pipeline.process(landmarks, timestamp, frameIndex++, dtMs);
   const mirrored = facingMode === "user";
@@ -130,7 +131,7 @@ function loop() {
   $("cal-banner").classList.toggle("hidden", calOk);
   if (!calOk) {
     const n = pipeline.calibrator.nValid;
-    $("cal-banner").textContent = `Kalibracija ${n}/45 — stojte uspravno, celo telo u kadru`;
+    $("cal-banner").textContent = `Calibration ${n}/45 — stand upright, whole body in frame`;
   }
 
   const fb = pipeline.liveFeedback();
@@ -142,15 +143,15 @@ function loop() {
   $("state").textContent = STATE_LABELS[pipeline.fsm.state] || pipeline.fsm.state;
   $("view-hint").textContent = pipeline.view.label;
   $("side-hint").textContent = pipeline.gValid
-    ? `Prati ${pipeline.side === "left" ? "levu" : "desnu"} stranu`
-    : "Čeka vidljive zglobove";
+    ? `Tracking ${pipeline.side === "left" ? "left" : "right"} side`
+    : "Waiting for visible joints";
   $("fps").textContent = dtMs > 0 ? `${Math.round(1000 / dtMs)} FPS · ${dtMs.toFixed(0)} ms` : "";
 
   if (!calOk) return;
 
   if (evt.justCompleted) {
     const q = evt.quality;
-    const msg = q === "ispravno" ? "Ponavljanje uspešno" : QUALITY_LABELS[q] || "Ciklus završen";
+    const msg = q === "ispravno" ? "Good repetition" : QUALITY_LABELS[q] || "Cycle complete";
     speak(msg);
     if (navigator.vibrate) navigator.vibrate(q === "ispravno" ? [40, 40, 80] : 80);
   } else if (evt.justShallow) {
@@ -187,11 +188,11 @@ function endSession() {
   const list = $("sum-qualities");
   list.innerHTML = "";
   if (!s.qualities.length) {
-    list.innerHTML = "<div class='quality-item'><span>Nema završenih ciklusa</span></div>";
+    list.innerHTML = "<div class='quality-item'><span>No completed cycles</span></div>";
   } else {
     s.qualities.forEach((q, i) => {
       const cls = q === "ispravno" ? "ok" : q === "nedovoljan_rom" ? "bad" : "warn";
-      list.innerHTML += `<div class="quality-item"><span>Ponavljanje ${i + 1}</span><b class="${cls}">${QUALITY_LABELS[q]}</b></div>`;
+      list.innerHTML += `<div class="quality-item"><span>Rep ${i + 1}</span><b class="${cls}">${QUALITY_LABELS[q]}</b></div>`;
     });
   }
   show("view-summary");
@@ -212,7 +213,7 @@ $("btn-flip").onclick = async () => {
     try {
       stream = await startCamera($("video"), facingMode);
     } catch {
-      $("feedback").textContent = "Promena kamere nije uspela.";
+      $("feedback").textContent = "Could not switch camera.";
     }
   }
 };
