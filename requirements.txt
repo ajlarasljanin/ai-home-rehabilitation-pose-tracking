@@ -1,0 +1,10 @@
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+pytest>=7.0
+matplotlib>=3.7
+
+# Opciono, za stvarni video-strim i za treniranje LSTM sloja:
+mediapipe>=0.10
+opencv-python>=4.8
+torch>=2.0

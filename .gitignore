@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# LaTeX / paper (not distributed)
+literature/
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Local tooling (cloudflared binary, self-signed certificates)
+mobile/tools/
+
+# Generated output (demo.py writes here)
+output/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

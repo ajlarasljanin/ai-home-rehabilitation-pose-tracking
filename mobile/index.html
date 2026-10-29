@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07131a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>RehabPose — kućna rehabilitacija</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <section class="view active" id="view-home">
+      <div class="hero">
+        <div class="kicker">Demo · MAS veštačke inteligencije</div>
+        <h1>Primena veštačke inteligencije u rehabilitaciji u kućnim uslovima</h1>
+        <p style="margin-top:12px">Kamera telefona → MediaPipe BlazePose (33 tačke) → ugao zgloba → Butterworth → FSM brojanje → semaforski feedback. Sve ostaje na uređaju.</p>
+      </div>
+      <div class="card">
+        <b>Ovo je demonstracija, nije medicinski uređaj.</b>
+        <p style="margin-top:8px">Algoritam je isti kao u seminarskom radu: ciklus dole–gore, histereza, Majority-Vote, refraktorni period i provera vidljivosti zglobova.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-start">Pokreni vežbu</button>
+        <button class="btn-primary hidden" id="btn-install-pwa">Instaliraj aplikaciju</button>
+        <button class="btn-ghost" id="btn-about">Kako sistem radi (sekcije rada)</button>
+        <button class="btn-ghost" id="btn-install-help">Kako da je dodam na početni ekran</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-exercises">
+      <div class="kicker">Izbor vežbe</div>
+      <h1>Šta želite da pratite?</h1>
+      <p>Koleno (čučanj) i lakat (pregib ruke) — dva primera iz sekcije 3 rada.</p>
+      <div class="exercise-list" id="exercise-list"></div>
+      <button class="btn-ghost" data-back="view-home">Nazad</button>
+    </section>
+
+    <section class="view" id="view-setup">
+      <div class="kicker">Priprema kadra</div>
+      <h1 id="setup-title">Priprema</h1>
+      <p id="setup-copy"></p>
+      <div class="checklist">
+        <div class="check"><div class="dot"></div><div><b>Osvetljenje</b><span>Licem prema prozoru ili lampi. Tamna soba ruši detekciju tačaka.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>Ugao kamere</b><span>Telefon uspravan, visina kuka, 2–3 metra. Celo telo u kadru.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>Okluzija</b><span>Ne prekrivajte koleno/lakat rukama ili nameštajem.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>Kalibracija</b><span>Prvih ~1,5 s stojte uspravno. Brojanje kreće posle toga.</span></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-begin">Uključi kameru</button>
+        <button class="btn-ghost" data-back="view-exercises">Nazad</button>
+      </div>
+    </section>
+
+    <section class="view session" id="view-session">
+      <video id="video" class="mirror" playsinline muted autoplay></video>
+      <canvas id="overlay"></canvas>
+      <div class="hud">
+        <div>
+          <div class="topbar">
+            <div class="pill"><em>Vežba</em><strong id="ex-name" style="font-size:0.95rem">—</strong></div>
+            <div class="pill counter"><em>Ponavljanja</em><strong id="count">0</strong></div>
+            <div id="semafor" class="semafor"></div>
+          </div>
+          <div class="cal-banner pill hidden" id="cal-banner">Kalibracija</div>
+          <div class="error-box hidden" id="session-error"></div>
+        </div>
+        <div>
+          <div class="feedback" id="feedback">Priprema kamere…</div>
+          <div class="metrics" style="margin-top:8px">
+            <div class="pill"><em>Ugao θ</em><strong id="theta">—</strong></div>
+            <div class="pill"><em>Brzina ω</em><strong id="omega">—</strong></div>
+            <div class="pill"><em>FSM</em><strong id="state" style="font-size:0.85rem">—</strong></div>
+          </div>
+          <p class="status-mini" id="view-hint"></p>
+          <p class="status-mini" id="side-hint"></p>
+          <p class="status-mini" id="fps"></p>
+          <div class="session-actions" style="margin-top:8px">
+            <button class="btn-ghost" id="btn-flip">Promeni kameru</button>
+            <button class="btn-danger" id="btn-end">Završi sesiju</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-summary">
+      <div class="kicker">Izveštaj sesije</div>
+      <h1 id="sum-ex">Sesija</h1>
+      <p>Sažetak ostaje na telefonu. Video se ne šalje nigde.</p>
+      <div class="stat-grid">
+        <div class="stat"><span>Ponavljanja</span><b id="sum-reps">0</b></div>
+        <div class="stat"><span>Pravilna</span><b id="sum-good">0</b></div>
+        <div class="stat"><span>Tačnost</span><b id="sum-acc">0%</b></div>
+        <div class="stat"><span>Trajanje</span><b id="sum-time">0:00</b></div>
+        <div class="stat"><span>Min θ</span><b id="sum-min">—</b></div>
+        <div class="stat"><span>Max θ</span><b id="sum-max">—</b></div>
+      </div>
+      <div class="card"><span style="color:var(--muted);font-size:0.8rem">Opseg pokreta (ROM)</span><b id="sum-rom" style="display:block;font-size:1.4rem">—</b></div>
+      <h2>Kvalitet po ponavljanju</h2>
+      <div class="quality-list" id="sum-qualities"></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-again">Nova vežba</button>
+        <button class="btn-ghost" id="btn-home">Početna</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-about">
+      <div class="kicker">Mapiranje na rad</div>
+      <h1>Šta demo pokriva</h1>
+      <div class="card about-sec"><h3>1. Uvod</h3><p>Kućna rehabilitacija bez terapeuta: sistem daje nadzor između dve kontrole.</p></div>
+      <div class="card about-sec"><h3>2. Računarska vizija</h3><p>MediaPipe BlazePose, 33 ključne tačke, skelet preko kamere. OpenPose je u radu naveden kao tačniji, ali pretežak za telefon.</p></div>
+      <div class="card about-sec"><h3>3. Ekstrakcija parametara</h3><p>Ugao θ preko skalarnog proizvoda, ugaona brzina ω kauzalnom razlikom, amplituda (ROM). Primeri: koleno kod čučnja i lakat kod pregiba.</p></div>
+      <div class="card about-sec"><h3>4. Prepoznavanje pokreta</h3><p>Pokret je vremenska sekvenca, ne jedan frejm. Pragovi + FSM; LSTM u radu je arhitektura, ovde heuristika kvaliteta.</p></div>
+      <div class="card about-sec"><h3>5. Brojanje</h3><p>START → DOWN → HOLD → UP → COMPLETE, histereza, Majority-Vote 4/5, refraktorni period 0,5 s.</p></div>
+      <div class="card about-sec"><h3>6. Arhitektura</h3><p>Kamera → detekcija tela → uglovi/filter → FSM → feedback. Obrada na uređaju, budžet ~33 ms po frejmu.</p></div>
+      <div class="card about-sec"><h3>7. Izazovi</h3><p>Osvetljenje, ugao kamere, okluzija (Visibility Score), različiti korisnici (kalibracija). Semafor postaje crven kad detekcija padne.</p></div>
+      <div class="card about-sec"><h3>8. Primene</h3><p>Rehabilitacija kolena (ACL/TKE), fizikalna terapija ruke, preventivni čučanj.</p></div>
+      <div class="card about-sec"><h3>9. Budući pravci</h3><p>3D/RGB-D, IMU fuzija, adaptivni pragovi, LLM izveštaj. Nisu u ovom demou.</p></div>
+      <div class="card about-sec"><h3>10. Zaključak</h3><p>Demo pokazuje da se jezgro rada može pokrenuti na telefonu. Nije klinička verifikacija.</p></div>
+      <button class="btn-ghost" data-back="view-home">Nazad</button>
+    </section>
+
+    <section class="view" id="view-install">
+      <div class="kicker">Samsung S25 Ultra</div>
+      <h1>Nema APK za preuzimanje</h1>
+      <p>Ovo nije fajl iz Play Store-a. Dodaje se kao prečica u Chrome-u, dok je laptop uključen.</p>
+      <div class="checklist">
+        <div class="check"><div class="dot"></div><div><b>1. Samo Chrome</b><span>Tri tačkice gore desno u Chrome-u — ne Samsung Internet, ne Files, ne Download.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>2. „Add to Home screen“ / „Dodaj na početni ekran“</b><span>Ako piše Install app / Instaliraj aplikaciju, to je još bolje. Potvrdite ime RehabPose.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>3. Ikona na početnom ekranu</b><span>Otvorite je kao običnu app. Kamera se traži tek kad krenete vežbu.</span></div></div>
+        <div class="check"><div class="dot"></div><div><b>4. Laptop ostaje upaljen</b><span>Bez računara link ne radi. Demo se ne preuzima u Downloads folder.</span></div></div>
+      </div>
+      <button class="btn-ghost" data-back="view-home">Nazad</button>
+    </section>
+  </div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
